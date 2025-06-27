@@ -3,7 +3,7 @@ import type { Settings } from '../generated-types'
 import type { Payload } from './generated-types'
 import { SyncAudiences } from '../api'
 import { CohortChanges } from '../braze-cohorts-types'
-import { StateContext } from '@segment/actions-core/src/destination-kit'
+import { StateContext } from '@segment/actions-core/destination-kit'
 import isEmpty from 'lodash/isEmpty'
 
 const action: ActionDefinition<Settings, Payload> = {
@@ -47,7 +47,8 @@ const action: ActionDefinition<Settings, Payload> = {
     cohort_id: {
       label: 'Cohort ID',
       description: 'The Cohort Identifier',
-      type: 'hidden',
+      type: 'string',
+      unsafe_hidden: true,
       required: true,
       default: {
         '@path': '$.context.personas.computation_id'
@@ -56,7 +57,8 @@ const action: ActionDefinition<Settings, Payload> = {
     cohort_name: {
       label: 'Cohort Name',
       description: 'The name of Cohort',
-      type: 'hidden',
+      type: 'string',
+      unsafe_hidden: true,
       required: true,
       default: {
         '@path': '$.context.personas.computation_key'
@@ -81,6 +83,7 @@ const action: ActionDefinition<Settings, Payload> = {
         'Displays properties of the event to add/remove users to a cohort and the traits of the specific user',
       type: 'object',
       required: true,
+      unsafe_hidden: true,
       default: {
         '@if': {
           exists: { '@path': '$.properties' },
@@ -92,11 +95,21 @@ const action: ActionDefinition<Settings, Payload> = {
     time: {
       label: 'Time',
       description: 'When the event occurred.',
-      type: 'hidden',
+      type: 'string',
+      unsafe_hidden: true,
       required: true,
       default: {
         '@path': '$.timestamp'
       }
+    },
+    batch_keys: {
+      label: 'Batch Keys',
+      description: 'The keys to use for batching the events.',
+      type: 'string',
+      unsafe_hidden: true,
+      default: ['cohort_name', 'cohort_id'], // This ensures all payloads from same audience are batched together.
+      multiple: true,
+      required: false
     }
   },
   perform: async (request, { settings, payload, stateContext }) => {

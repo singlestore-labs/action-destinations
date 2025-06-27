@@ -2,9 +2,14 @@ import { createTestEvent, SegmentEvent } from '@segment/actions-core'
 import * as types from '../utils/types'
 
 interface revUserCreateBody {
-  email: string,
-  full_name: string,
-  org_id: string
+  email: string
+  display_name: string
+  org_id?: string
+  tags?: { id: string }[]
+}
+
+interface revUserResponse {
+  rev_user: types.RevUser
 }
 
 export const accountId = 'test-account-id'
@@ -17,9 +22,19 @@ export const email = 'test-user@test.com'
 export const domain = email.split('@')[1]
 
 export const testUserId = 'test-user-id'
+export const testUserRef = 'test-user-ref'
+export const testAccountRef = 'test-account-ref'
+export const testWorkspaceRef = 'test-workspace-ref'
 export const testUserFullName = 'test-user-full-name'
 export const testDescription = 'test-description'
 export const testEventName = 'test-event-name'
+export const testMessageId = 'test-message-id'
+export const testAnonymousId = 'test-anonymous-id'
+
+export const testContext = {
+  userAgent:
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1'
+}
 
 export const testEventPayload: Partial<SegmentEvent> = {
   type: 'track',
@@ -50,21 +65,21 @@ export const testAccountDomain = {
 }
 
 export const testRevOrgDefaultNewer = {
-  "id": "newer-but-default-revo",
-  "account": testAccountDomain,
-  "created_date": newerCreateDate,
-  "display_name": "newer but default revo",
-  "external_ref_issuer": "devrev:platform:revorg:account",
-  "state": "active",
+  id: 'newer-but-default-revo',
+  account: testAccountDomain,
+  created_date: newerCreateDate,
+  display_name: 'newer but default revo',
+  external_ref_issuer: 'devrev:platform:revorg:account',
+  state: 'active'
 }
 
 export const testRevOrgNotDefaultOlder = {
-  "id": "older-but-not-default-revo",
-  "account": testAccountDomain,
-  "created_date": olderCreateDate,
-  "display_name": "older but not default revo",
-  "external_ref_issuer": "devrev:platform",
-  "state": "active",
+  id: 'older-but-not-default-revo',
+  account: testAccountDomain,
+  created_date: olderCreateDate,
+  display_name: 'older but not default revo',
+  external_ref_issuer: 'devrev:platform',
+  state: 'active'
 }
 
 export const testRevUserNewer = {
@@ -73,7 +88,6 @@ export const testRevUserNewer = {
   display_name: testUserFullName,
   email: email,
   rev_org: testRevOrgDefaultNewer
-
 }
 
 export const testRevUserOlder = {
@@ -100,43 +114,58 @@ export const accountsListResponse: types.AccountListResponse = {
 
 export const revorgsListResponse: types.RevOrgListResponse = {
   data: {
-    rev_orgs: [
-      testRevOrgDefaultNewer,
-      testRevOrgNotDefaultOlder,
-    ]
+    rev_orgs: [testRevOrgDefaultNewer, testRevOrgNotDefaultOlder]
   }
 }
 
 export const revUsersListResponse: types.RevUserListResponse = {
   data: {
-    rev_users: [
-      testRevUserNewer,
-      testRevUserOlder
-    ]
+    rev_users: [testRevUserNewer, testRevUserOlder]
   }
 }
 
-
-export const revUsersCreateResponse = async (_: never, body: revUserCreateBody) => {
-  return {
-      rev_user:       
-      {
-        id: testRevUserNewer.id,
-        created_date: newerCreateDate,
-        display_name: body.full_name,
-        email: body.email,
-        rev_org: {
-          id: body.org_id,
-          display_name: 'test-org'
-        }
-      }
-    }
+export const revUsersSingleList: types.RevUserListResponse = {
+  data: {
+    rev_users: [testRevUserNewer]
+  }
 }
 
+export const revUsersCreateResponse = async (_: never, body: revUserCreateBody) => {
+  const resp: revUserResponse = {
+    rev_user: {
+      id: testRevUserNewer.id,
+      created_date: newerCreateDate,
+      display_name: body.display_name,
+      email: body.email
+    }
+  }
+  if (body.org_id)
+    resp.rev_user.rev_org = {
+      id: body.org_id,
+      display_name: 'test-org'
+    }
+  if (body.tags) {
+    resp.rev_user.tags = body.tags.map((tag) => {
+      return { tag }
+    })
+  }
+  return resp
+}
+
+export const revUserUpdateTagsResponse = async (_: never, body: { id: string; tags: string[] }) => {
+  return {
+    rev_user: {
+      id: body.id,
+      tags: body.tags.map((tagid) => {
+        return { tag: tagid }
+      })
+    }
+  }
+}
 
 export const accountCreateResponse = async (_: never, body: types.CreateAccountBody) => {
   return {
-    account : {
+    account: {
       id: accountId,
       created_date: newerCreateDate,
       display_name: body.display_name,
@@ -151,11 +180,10 @@ export const accountCreateResponse = async (_: never, body: types.CreateAccountB
 export const timelineEntriesCreateResponse = {
   data: {
     timeline_entry: {
-      id: 'test-timeline-entry-id',
+      id: 'test-timeline-entry-id'
     }
   }
 }
-
 
 export const devUserSelfResponse = {
   data: {
@@ -167,6 +195,5 @@ export const devUserSelfResponse = {
 
 export const settings = {
   apiKey: 'blank',
-  blacklistedDomains: '',
+  blacklistedDomains: ''
 }
-
