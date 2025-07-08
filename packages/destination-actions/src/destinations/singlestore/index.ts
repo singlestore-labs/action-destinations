@@ -89,15 +89,13 @@ const destination: DestinationDefinition<Settings> = {
         throwHttpErrors: false
       })
 
-      const responeData: ExecJSONResponse = response.data
-      if (typeof responeData.ok === 'boolean' && responeData.ok === false) {
+      if (response.status !== 200 || response.ok === false) {
         throw new IntegrationError(
-          `Failed to create table: ${responeData.error || 'Unknown error'}`,
+          `Failed to create table: ${(await response.text()) || 'Unknown error'}`,
           'Bad Request',
-          400
+          response.status
         )
       }
-      return responeData
     }
   },
   actions: {

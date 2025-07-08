@@ -65,9 +65,12 @@ export async function send(request: RequestClient, payloads: Payload[], settings
     throwHttpErrors: false
   })
 
-  const responeData: ExecJSONResponse = response.data
-  if (typeof responeData.ok === 'boolean' && responeData.ok === false) {
-    throw new IntegrationError(`Failed to insert data: ${responeData.error || 'Unknown error'}`, 'Bad Request', 400)
+  if (response.status !== 200 || response.ok === false) {
+    throw new IntegrationError(
+      `Failed to insert data: ${(await response.text()) || 'Unknown error'}`,
+      'Bad Request',
+      response.status
+    )
   }
-  return responeData
+  return response
 }

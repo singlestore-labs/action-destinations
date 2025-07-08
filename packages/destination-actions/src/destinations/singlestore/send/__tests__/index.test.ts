@@ -249,29 +249,26 @@ describe('SingleStore.send', () => {
 
   it('send failure', async () => {
     const events = [createTestEvent(payload1), createTestEvent(payload2), createTestEvent(payload3)]
-    nock('https://testhost:445').post('/api/v2/exec', sendMultipleJSON).reply(400, { ok: false, error: '' })
-    const responses = await testDestination.executeBatch('send', {
-      events,
-      settings,
-      mapping
-    })
-    console.log('responses', responses)
-    expect(responses.length).toBe(1) // ?? Changed this to 3 from 1
-    expect(responses[0].status).toBe(400)
+    nock('https://testhost:445').post('/api/v2/exec', sendMultipleJSON).reply(400, '')
+    await expect(
+      testDestination.executeBatch('send', {
+        events,
+        settings,
+        mapping
+      })
+    ).rejects.toThrow('Failed to insert data: Unknown error')
   })
 
   it('send database failure', async () => {
     const events = [createTestEvent(payload1), createTestEvent(payload2), createTestEvent(payload3)]
-    nock('https://testhost:445')
-      .post('/api/v2/exec', sendMultipleJSON)
-      .reply(200, { ok: false, error: 'Database error' })
-    const responses = await testDestination.executeBatch('send', {
-      events,
-      settings,
-      mapping
-    })
-    expect(responses.length).toBe(1)
-    expect(responses[0].status).toBe(400)
+    nock('https://testhost:445').post('/api/v2/exec', sendMultipleJSON).reply(400, 'Database error')
+    await expect(
+      testDestination.executeBatch('send', {
+        events,
+        settings,
+        mapping
+      })
+    ).rejects.toThrow('Failed to insert data: Database error')
   })
 
   it('test Authentication successfull', async () => {
@@ -286,93 +283,9 @@ describe('SingleStore.send', () => {
         const parsed = typeof body === 'string' ? JSON.parse(body) : body
         return parsed.database === 'testdb' && parsed.sql.includes('CREATE TABLE')
       })
-      .reply(400, {})
-    await expect(testDestination.testAuthentication(settings)).rejects.toThrow('Credentials are invalid: 400')
-  })
-
-  it('test Authentication database failure', async () => {
-    nock('https://testhost:445')
-      .post('/api/v2/exec', (body) => {
-        // Parse if string
-        const parsed = typeof body === 'string' ? JSON.parse(body) : body
-        return parsed.database === 'testdb' && parsed.sql.includes('CREATE TABLE')
-      })
-      .reply(200, { ok: false, error: 'Database error' })
+      .reply(400, 'Access denied')
     await expect(testDestination.testAuthentication(settings)).rejects.toThrow(
-      'Credentials are invalid:  Failed to create table: Database error'
+      'Credentials are invalid:  Failed to create table: Access denied'
     )
   })
 })
-
-// describe('SingleStore.send', () => {
-//   it('send signle payload', async () => {
-//     const event = createTestEvent(payload1)
-//     nock('https://testhost:445').post('/api/v2/exec', sendSingleJSON).reply(200, {
-//       "lastInsertId": 1,
-//       "rowsAffected": 1
-//     })
-//     const responses = await testDestination.testAction('send', {
-//       event,
-//       settings,
-//       useDefaultMappings: true,
-//     })
-//     expect(responses.length).toBe(1)
-//     expect(responses[0].status).toBe(200)
-//   })
-
-//   it('send multiple payloads', async () => {
-//     const events = [createTestEvent(payload1), createTestEvent(payload2), createTestEvent(payload3)]
-//     nock('https://testhost:445').post('/api/v2/exec', sendMultipleJSON).reply(200, {
-//       "lastInsertId": 3,
-//       "rowsAffected": 3
-//     })
-//     const responses = await testDestination.executeBatch('send', {
-//       events,
-//       settings,
-//       mapping
-//     })
-//     expect(responses.length).toBe(1)
-//     expect(responses[0].status).toBe(200)
-//   })
-
-//   it('send failure', async () => {
-//     const events = [createTestEvent(payload1), createTestEvent(payload2), createTestEvent(payload3)]
-//     nock('https://testhost:445').post('/api/v2/exec', sendMultipleJSON).reply(400, {})
-//     const responses = await testDestination.executeBatch('send', {
-//       events,
-//       settings,
-//       mapping
-//     })
-//     expect(responses.length).toBe(1)
-//     expect(responses[0].status).toBe(400)
-//   })
-
-//   it('send database failure', async () => {
-//     const events = [createTestEvent(payload1), createTestEvent(payload2), createTestEvent(payload3)]
-//     nock('https://testhost:445').post('/api/v2/exec', sendMultipleJSON).reply(200, { "ok": false, "error": "Database error" })
-//     const responses = await testDestination.executeBatch('send', {
-//       events,
-//       settings,
-//       mapping
-//     })
-//     expect(responses.length).toBe(1)
-//     expect(responses[0].status).toBe(400)
-//   })
-
-//   it('test Authentication successfull', async () => {
-//     nock('https://testhost:445').post('/api/v2/exec', createTableJSON).reply(200, {})
-//     await testDestination.testAuthentication(settings)
-//   })
-
-//   it('test Authentication failure', async () => {
-//     nock('https://testhost:445').post('/api/v2/exec', createTableJSON).reply(400, {})
-//     await expect(testDestination.testAuthentication(settings))
-//       .rejects.toThrow('Credentials are invalid: 400');
-//   })
-
-//   it('test Authentication database failure', async () => {
-//     nock('https://testhost:445').post('/api/v2/exec', createTableJSON).reply(200, { "ok": false, "error": "Database error" })
-//     await expect(testDestination.testAuthentication(settings))
-//       .rejects.toThrow('Credentials are invalid: 400 Failed to create table: Database error');
-//   })
-// })
