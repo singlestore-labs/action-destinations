@@ -188,14 +188,13 @@ const sendMultipleJSON = {
     }
   ]
 }
-// ?? changed the above args for payload 3 removed null and added traits to this...
 
 const createTableJSON = {
   sql: `
         CREATE TABLE IF NOT EXISTS testtable (
           messageId VARCHAR(255) NOT NULL,
           timestamp DATETIME NOT NULL,
-          type ENUM('track', 'identify', 'page', 'screen', 'group', 'alias') NOT NULL,
+          type VARCHAR(255) NOT NULL,
           event VARCHAR(255),
           name VARCHAR(255),
           properties JSON,
@@ -243,7 +242,7 @@ describe('SingleStore.send', () => {
       settings,
       mapping
     })
-    expect(responses.length).toBe(3) // ?? Changed this to 3 from 1
+    expect(responses.length).toBe(3)
     expect(responses[0].status).toBe(200)
   })
 
@@ -277,13 +276,7 @@ describe('SingleStore.send', () => {
   })
 
   it('test Authentication failure', async () => {
-    nock('https://testhost:445')
-      .post('/api/v2/exec', (body) => {
-        // Parse if string
-        const parsed = typeof body === 'string' ? JSON.parse(body) : body
-        return parsed.database === 'testdb' && parsed.sql.includes('CREATE TABLE')
-      })
-      .reply(400, 'Access denied')
+    nock('https://testhost:445').post('/api/v2/exec', createTableJSON).reply(400, 'Access denied')
     await expect(testDestination.testAuthentication(settings)).rejects.toThrow(
       'Credentials are invalid:  Failed to create table: Access denied'
     )

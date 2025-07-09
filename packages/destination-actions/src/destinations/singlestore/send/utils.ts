@@ -25,29 +25,25 @@ export async function send(request: RequestClient, payloads: Payload[], settings
 
   const sqlValuesClause = payloads.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ')
 
-  const sql = `INSERT INTO \`${tableName}\` (${columns.join(', ')}) VALUES ${sqlValuesClause}`
+  const sql = `INSERT INTO \`${tableName.replace(/`/g, '``')}\` (${columns.join(', ')}) VALUES ${sqlValuesClause}`
 
   function toUTCDateTime(timestamp: string): string {
-    const date = new Date(timestamp)
-    return date.toISOString().replace('T', ' ').replace('Z', '') // 'YYYY-MM-DD HH:MM:SS'
+    return timestamp.replace('T', ' ').replace('Z', '') // 'YYYY-MM-DD HH:MM:SS.SSS'
   }
 
-  const args: any[] = []
-  for (const item of payloads) {
-    args.push(
-      item.messageid,
-      toUTCDateTime(item.timestamp),
-      item.type,
-      item.event ?? null,
-      item.name ?? null,
-      item.properties ?? null,
-      item.userId ?? null,
-      item.anonymousId ?? null,
-      item.groupId ?? null,
-      item.traits ?? null,
-      item.context ?? null
-    )
-  }
+  const args: any[] = payloads.flatMap((item) => [
+    item.messageid,
+    toUTCDateTime(item.timestamp),
+    item.type,
+    item.event ?? null,
+    item.name ?? null,
+    item.properties ?? null,
+    item.userId ?? null,
+    item.anonymousId ?? null,
+    item.groupId ?? null,
+    item.traits ?? null,
+    item.context ?? null
+  ])
 
   const requestData: ExecJSONRequest = {
     sql,
@@ -68,7 +64,7 @@ export async function send(request: RequestClient, payloads: Payload[], settings
   if (response.status !== 200 || response.ok === false) {
     throw new IntegrationError(
       `Failed to insert data: ${(await response.text()) || 'Unknown error'}`,
-      'Bad Request',
+      response.statusText,
       response.status
     )
   }

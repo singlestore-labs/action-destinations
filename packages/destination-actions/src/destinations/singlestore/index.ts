@@ -53,16 +53,14 @@ const destination: DestinationDefinition<Settings> = {
     testAuthentication: async (request, { settings }) => {
       const { host, port, username, password, dbName, tableName } = settings
 
-      // console.log(JSON.stringify(settings, null, 2))
-
       const url = `https://${host}:${port}/api/v2/exec`
       const encodedCredentials = btoa(`${username}:${password}`)
 
       const sql = `
-        CREATE TABLE IF NOT EXISTS ${tableName} (
+        CREATE TABLE IF NOT EXISTS \`${tableName.replace(/`/g, '``')}\` (
           messageId VARCHAR(255) NOT NULL,
           timestamp DATETIME NOT NULL,
-          type ENUM('track', 'identify', 'page', 'screen', 'group', 'alias') NOT NULL,
+          type VARCHAR(255) NOT NULL,
           event VARCHAR(255),
           name VARCHAR(255),
           properties JSON,
@@ -92,10 +90,11 @@ const destination: DestinationDefinition<Settings> = {
       if (response.status !== 200 || response.ok === false) {
         throw new IntegrationError(
           `Failed to create table: ${(await response.text()) || 'Unknown error'}`,
-          'Bad Request',
+          response.statusText,
           response.status
         )
       }
+      return response
     }
   },
   actions: {
